@@ -1,0 +1,70 @@
+#*******************************************
+# MacDescription = Update Corrected Coordinates on Geocaching.Com
+# MacFileName = CopyCorrectedToGeocachingCom.gsk
+# MacAuthor = bjoff
+# MacVersion= 1.0
+# MacUrl = 
+#*******************************************
+
+VERCHECK Version=8.6.0.0 (Please update GSAK to version 8.6 or later to run this macro)
+
+
+$_sql="PRAGMA table_info(Custom)"
+$CustomCol=Sqlite("sql",$_sql)
+IF At("CorrUpdate",$CustomCol)=0
+    $Status=CustomConfig("Add","CorrDate,Date,Local,,,,,")
+ENDIF
+
+$CurrNum = 1
+$Added   = 0
+$Removed = 0
+
+Goto Position=TOP
+While Not ($_EOL)
+
+  # If corrected, we update
+  If $d_HasCorrected
+    $XmlAPI=$APITemplate
+    $XmlAPI=Replace("~GCCODE~",    $d_Code,      $XmlAPI)
+    $XmlAPI=Replace("~LATITUDE~",  $d_Latitude,  $XmlAPI)
+    $XmlAPI=Replace("~LONGITUDE~", $d_Longitude, $XmlAPI)
+    $retVal = GcApi("SaveUserWaypoint",$XmlAPI)
+    If $_GcApiError
+     MsgOk msg="There was an error with the API request (SaveUserWaypoint)"
+    EndIf
+    $Added = $Added + 1
+  Else
+  
+    # Not corrected anymore, delete from geocaching.com
+    $WayPoints = GcApi("GetUserWaypoints?cacheCode=$d_Code")  
+    $WpToDelete = val(sqlite("sql","select data FROM GCapi where key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:ID' "))
+    If $WpToDelete > 1
+      $ApiRes = GcApi("DeleteUserWaypoint?waypointId=$WpToDelete")
+      If $_GcApiError
+        MsgOk msg="There was an error with the API request (DeleteUserWaypoint)"
+      EndIf
+    EndIf
+    $Removed = $Removed + 1
+  EndIf
+  
+  $statusMessage = "$CurrNum / $_Count (Added: $Added / Removed: $Removed)"
+  ShowStatus msg=$statusMessage Width=350
+  
+  # Update CustomField CurrUpdate
+  $dummy = CustomPut("CorrUpdate",DateToSql($_Today))
+
+  $CurrNum = $CurrNum + 1
+  Goto Position=Next
+EndWhile
+
+<data> VarName=$APITemplate
+<SaveUserWaypointRequest xmlns="http://www.geocaching.com/Geocaching.Live/data">
+  <AccessToken>{ACCESSTOKEN}</AccessToken>
+  <CacheCode>~GCCODE~</CacheCode>
+  <Latitude>~LATITUDE~</Latitude>
+  <Longitude>~LONGITUDE~</Longitude>
+  <ID>0</ID>
+  <IsCorrectedCoordinate>true</IsCorrectedCoordinate>
+  <IsUserCompleted>true</IsUserCompleted>
+</SaveUserWaypointRequest>
+<enddata>
