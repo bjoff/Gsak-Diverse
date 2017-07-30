@@ -35,7 +35,7 @@ EndIf
 $_sql="PRAGMA table_info(Custom)"
 $CustomCol=Sqlite("sql",$_sql)
 If At("CorrUpdate",$CustomCol)=0
-    $Status=CustomConfig("Add","CorrDate,Date,Local,,,,,")
+    $Status=CustomConfig("Add","CorrUpdate,Date,Local,,,,,")
 EndIf
 
 
