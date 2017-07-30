@@ -1,5 +1,5 @@
 #*******************************************
-# MacVersion = 1.2
+# MacVersion = 1.3
 # MacDescription = preExport
 # MacAuthor = bjoff
 # MacFileName = preExport.gsk
@@ -14,7 +14,7 @@
 # ! - Deaktivert cache
 # * - Korrigerte koordinater
 # D - Denne cachen har DNF som siste logg
-# R - Manglende i din DT-matrise 
+# R - Manglende i din DT-matrise
 # r - Manglende i din DT-matrise neste runde
 # M - Mangler i 'utlagt måned' tabellen ()
 # m - Mangler i 'utlagt måned' tabellen ()
@@ -24,16 +24,17 @@
 # F - Denne cachen som har mer enn X poeng
 # G - Manglende grad for cache '360 degrees of Norway'
 # K - manglende kommune
+# L - Lonely cache (ikke funnet på 1 år, og ikke vært disablet i perioden)
 # t - manglende DT i henholdsvis multi/mystery/tradisjonell (se f.eks. GC6XVBX,GC6RRKZ,GC6M79B,GC6M77E,etc)
-# 
+#
 # Et cachenavn kan da f.eks. se ut som dette på GPS'en:
-# "[*RMpGK] Fjelltur" som betyr at det her er korrigerte koordinater, du får 
-#  en ny rating og en ny utlagt måned, samt at det finnes parkeringskoordinater. I tillegg 
+# "[*RMpGK] Fjelltur" som betyr at det her er korrigerte koordinater, du får
+#  en ny rating og en ny utlagt måned, samt at det finnes parkeringskoordinater. I tillegg
 #  gir denne en ny grad for 360-challengen og er i en kommune du ikke har funn i fra før.
 #
 #
-# For å få med disse flaggene må det også settes at man skal benytte verdier fra User-feltet 
-# hvor vi nå har samlet flagg. Dette gjøres ved å sette noe tilsvarende linjen under i feltet 
+# For å få med disse flaggene må det også settes at man skal benytte verdier fra User-feltet
+# hvor vi nå har samlet flagg. Dette gjøres ved å sette noe tilsvarende linjen under i feltet
 # 'Use Custom Cache name' (Verdiene under er det jeg benytter for export)
 #
 #    %User4%name
@@ -41,7 +42,7 @@
 # Sett inn de bokstavene som er ønskelig for deg i linjen under
 # Dette er selve av/på knappen for de forskjellige bokstavene.
 
-$Flags = "!*DRrMmdApFGKt"
+$Flags = "!*DRrMmdApFGKLt"
 
 
 # Her setter vi hvilket felt som skal benyttes for flaggene som settes.
@@ -57,7 +58,6 @@ $DtRound = 1
 
 # Standardverdi er 1. (For flagg 'd')
 $Jasmer = 1
-
 
 # Favorittpoeng som skal markeres med 'F'
 $Favoritt = 50
@@ -75,98 +75,125 @@ $status = Sqlite("sql",$_sql)
 
 If RegEx ("(?-i)t", $Flags)
   # Sett 't' for cacher som mangler i 81 DT matrise for Multi
-  $_sql = "Update Caches set $UserField = 't' || $UserField Where $_WHERE AND Not Found And Status ='A' and CacheType = 'M' And Code in (Select Code From Caches Where 100*difficulty+terrain not in ( Select Distinct (100*Difficulty+Terrain) as DT From Caches Where Found and CacheType = 'M' Group By DT Having count(DT) > 0))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_T
+  $query = Replace ("~TYPE~", "M", $query, false)
+  GoSub Name=DoSQL
 
   # Sett 't' for cacher som mangler i 81 DT matrise for Mystery
-  $_sql = "Update Caches set $UserField = 't' || $UserField Where $_WHERE AND Not Found And Status ='A' and CacheType = 'U' And Code in (Select Code From Caches Where 100*difficulty+terrain not in ( Select Distinct (100*Difficulty+Terrain) as DT From Caches Where Found and CacheType = 'U' Group By DT Having count(DT) > 0))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_T
+  $query = Replace ("~TYPE~", "U", $query, false)
+  GoSub Name=DoSQL
 
   # Sett 't' for cacher som mangler i 81 DT matrise for Traditional
-  $_sql = "Update Caches set $UserField = 't' || $UserField Where $_WHERE AND Not Found And Status ='A' and CacheType = 'T' And Code in (Select Code From Caches Where 100*difficulty+terrain not in ( Select Distinct (100*Difficulty+Terrain) as DT From Caches Where Found and CacheType = 'T' Group By DT Having count(DT) > 0))"
-  $status = Sqlite("sql",$_sql)
+  $_sql = $sql_t
+  $query = $SQL_T
+  $query = Replace ("~TYPE~", "T", $query, false)
+  GoSub Name=DoSQL
 
   # Sett 't' for cacher som mangler i 81 DT matrise for Letterbox
-  $_sql = "Update Caches set $UserField = 't' || $UserField Where $_WHERE AND Not Found And Status ='A' and CacheType = 'B' And Code in (Select Code From Caches Where 100*difficulty+terrain not in ( Select Distinct (100*Difficulty+Terrain) as DT From Caches Where Found and CacheType = 'B' Group By DT Having count(DT) > 0))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_T
+  $query = Replace ("~TYPE~", "B", $query, false)
+  GoSub Name=DoSQL
+EndIf
+
+If RegEx ("(?-i)L", $Flags)
+  # Sett 'L' for cacher som ikke er funnet på over et år
+  $query = $SQL_L
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)K", $Flags)
   # Sett 'K' for cacher i nye kommuner
-  $_sql = "Update Caches set $UserField = 'K' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code in (select c.code from caches c where c.Country || c.State || c.County not in ( select distinct c2.Country || c2.State || c2.County from caches c2 where c2.Found))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_K
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)G", $Flags)
   # Sett 'G' for missing degree for cache '360 degrees of Norway'
-  $_sql = "Update Caches set $UserField = 'G' || $UserField Where $_WHERE AND Not Found And Status ='A' And Country = 'Norway' And Code in (select code from caches where cast(g_bearing2(61.6364,  8.3127, latOriginal, lonOriginal) as int) not in (Select distinct cast(g_bearing2(61.6364,  8.3127, c2.latOriginal, c2.lonOriginal) as int) from caches c2 where c2.Found and c2.Country = 'Norway'))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_G
+  $query = Replace ("~LATITUDE~", "61.6364", $query, false)
+  $query = Replace ("~LONGITUDE~", "8.3127", $query, false)
+  GoSub Name=DoSQL
 EndIf
+
 
 If RegEx ("(?-i)F", $Flags)
   # Sett 'F' for cacher som har mer enn $Favoritt poeng
-  $_sql = "Update Caches set $UserField = 'F' || $UserField Where $_WHERE AND Not Found And Status ='A' And FavPoints >= $Favoritt"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_F
+  $query = Replace ("~Favoritt~", "$Favoritt", $query, false)
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)p", $Flags)
   # Sett 'p' om det finnes Parkeringskoordinater
-  $_sql = "Update Caches set $UserField = 'p' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code in (select c.Code from Caches c, Waypoints w where Not c.Found And w.cParent = c.Code And cType = 'Parking Area')"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_p
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)A", $Flags)
   # Sett 'A' for cacher som har attributter som mangler.
-  $_sql = "Update Caches set $UserField = 'A' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code in (select distinct c.Code from Caches c, Attributes a Where c.Code = a.aCode and 100*a.aId+a.aInc not in (select distinct 100*a.aId+a.aInc from Attributes a, Caches c Where c.Found And c.Code = a.aCode))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_A
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)d", $Flags)
   # Sett 'd' for cacher som mangler på 'utlagt dato'
-  $_sql = "Update Caches set $UserField = 'd' || $UserField Where $_WHERE AND Not Found And Status ='A' And substr(PlacedDate, 6, 5) not in (select distinct substr(PlacedDate, 6, 5)  from caches where found)"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_d
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)m", $Flags)
   # Sett 'm' for cacher som er lagt ut en måned som mangler (neste runde)
-  $_sql = "Update Caches set $UserField = 'm' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code not in (Select Code From Caches Where substr(PlacedDate, 0, 8) not in (Select Distinct substr(PlacedDate, 0, 8) as Mnd From caches Where Found Group by Mnd Having count(Mnd) = $Jasmer))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_Jasmer
+  $query = Replace ("~Letter~", "m", $query, false)
+  $query = Replace ("~OPERATOR~", "=", $query, false)
+  $query = Replace ("~JASMER~", "$Jasmer", $query, false)
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)M", $Flags)
   # Sett 'M' for cacher som er lagt ut en måned som mangler
-  $_sql = "Update Caches set $UserField = 'M' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code not in (Select Code From Caches Where substr(PlacedDate, 0, 8) not in (Select Distinct substr(PlacedDate, 0, 8) as Mnd From caches Where Found Group by Mnd Having count(Mnd) < $Jasmer))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_Jasmer
+  $query = Replace ("~Letter~", "M", $query, false)
+  $query = Replace ("~OPERATOR~", "<", $query, false)
+  $query = Replace ("~JASMER~", "$Jasmer", $query, false)
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)r", $Flags)
   # Sett 'r' for cacher som mangler i neste runde 81 DT matrise
-  $_sql = "Update Caches set $UserField = 'r' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code Not in (Select Code From Caches Where 100*difficulty+terrain not in ( Select Distinct (100*Difficulty+Terrain) as DT From Caches Where Found Group By DT Having count(DT) = $DtRound))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_DT
+  $query = Replace ("~Letter~", "r", $query, false)
+  $query = Replace ("~OPERATOR~", "=", $query, false)
+  $query = Replace ("~DTROUND~", "$DtRound", $query, false)
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)R", $Flags)
   # Sett 'R' for cacher som mangler i 81 DT matrise
-  $_sql = "Update Caches set $UserField = 'R' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code Not in (Select Code From Caches Where 100*difficulty+terrain not in ( Select Distinct (100*Difficulty+Terrain) as DT From Caches Where Found Group By DT Having count(DT) < $DtRound))"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_DT
+  $query = Replace ("~Letter~", "r", $query, false)
+  $query = Replace ("~OPERATOR~", "<", $query, false)
+  $query = Replace ("~DTROUND~", "$DtRound", $query, false)
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)D", $Flags)
   # Sett 'D' for cacher som har DNF, NM, NA som sistelogg
-  $_sql = "Update Caches set $UserField = 'D' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code in (select code from caches where (select sum(NA) from (select case when ltype = 'Needs Archived' then 1 when ltype = 'Didn''t find it' then 1 when ltype = 'Needs Maintenance' then 1 else 0 end as NA from logs where lParent = code order by ldate desc,llogid desc limit 1 )) > 0)"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_DNF
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)\*", $Flags)
   # Sett '*' om det er lagt inn 'korrigerte koordinater' for cachen
-  $_sql = "Update Caches set $UserField = '*' || $UserField Where $_WHERE AND Not Found And Status ='A' And Code in (select c.Code from Caches c, Corrected o where Not c.Found And o.kCode = c.Code)"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_Corr
+  GoSub Name=DoSQL
 EndIf
 
 If RegEx ("(?-i)!", $Flags)
   # Sett '!' for deaktiverte cacher.
-  $_sql = "Update Caches set $UserField = '!' || $UserField Where $_WHERE AND not found and TempDisabled"
-  $status = Sqlite("sql",$_sql)
+  $query = $SQL_Disabled
+  GoSub Name=DoSQL
 EndIf
 
 # Lag en 'ramme' rundt de nye status-flaggene
@@ -174,4 +201,248 @@ $_sql = "Update Caches set $UserField = '(' || $UserField || ')' Where $UserFiel
 $status = Sqlite("sql",$_sql)
 
 # Her starter den egentlige export-makroen.
-MACRO File="GarminExport.gsk" VarScope=Local 
+MACRO File="GarminExport.gsk" VarScope=Local
+
+BeginSub Name=DoSQL
+  $_sql = Replace ("~UserField~", $UserField, $query, false)
+  $_sql = Replace ("~WHERE~", $_WHERE, $_sql, false)
+  $status = Sqlite("sql",$_sql)
+EndSub
+
+
+###########################
+#
+# SQL
+#   Added here to keep indentations.
+#
+###########################
+
+<Data> VarName=$SQL_T
+Update Caches
+Set ~UserField~ = 't' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And CacheType = '~TYPE~'
+And Code in (
+  Select Code
+  From Caches
+  Where 100*difficulty+terrain Not In (
+    Select Distinct (100*Difficulty+Terrain) as DT
+    From Caches
+    Where Found
+    And CacheType = '~TYPE~'
+    Group By DT Having count(DT) > 0
+  )
+)
+<enddata>
+
+
+<Data> VarName=$SQL_L
+Update Caches
+Set ~UserField~ = 'L' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And (julianday('now') - julianday(LastFoundDate) > 365 or LastFoundDate = '' and (julianday('now') - julianday(PlacedDate)) > 365)
+And code Not in (
+  Select lparent
+  From Logs
+  Where lparent = code
+  And ltype = 'Publish Listing'
+  And lDate > date(datetime('now', '-1 year'))
+)
+And code not in (
+  Select lparent
+  From Logs
+  Where lparent = code
+  And ltype = 'Enable Listing'
+  And lDate > date(datetime('now', '-1 year'))
+)
+<enddata>
+
+
+<Data> VarName=$SQL_K
+Update Caches
+Set ~UserField~ = 'K' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Code in (
+  Select c.code
+  From caches c
+  Where c.Country || c.State || c.County not in (
+    Select distinct c2.Country || c2.State || c2.County
+    From caches c2
+    Where c2.Found
+  )
+)
+<enddata>
+
+
+<Data> VarName=$SQL_G
+Update Caches
+Set ~UserField~ = 'G' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Country = 'Norway'
+And Code in (
+  Select code
+  From caches
+  Where cast(g_bearing2(~LATITUDE~, ~LONGITUDE~, latOriginal, lonOriginal) as int) not in (
+    Select distinct cast(g_bearing2(~LATITUDE~, ~LONGITUDE~, c2.latOriginal, c2.lonOriginal) as int)
+    From caches c2
+    Where c2.Found
+    And c2.Country = 'Norway'
+  )
+)
+<enddata>
+
+
+<Data> VarName=$SQL_F
+Update Caches
+Set ~UserField~ = 'F' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And FavPoints >= ~Favoritt~
+<enddata>
+
+
+<Data> VarName=$SQL_p
+Update Caches
+Set ~UserField~ = 'p' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Code in (
+  Select c.Code
+  From Caches c, Waypoints w
+  Where Not c.Found
+  And w.cParent = c.Code
+  And cType = 'Parking Area'
+)
+<enddata>
+
+
+<Data> VarName=$SQL_A
+Update Caches
+Set ~UserField~ = 'A' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Code in (
+  Select distinct c.Code
+  From Caches c, Attributes a
+  Where c.Code = a.aCode
+  And 100*a.aId+a.aInc Not in (
+    Select Distinct 100*a.aId+a.aInc
+    From Attributes a, Caches c
+    Where c.Found
+    And c.Code = a.aCode
+  )
+)
+<enddata>
+
+
+<Data> VarName=$SQL_d
+Update Caches
+Set ~UserField~ = 'd' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And substr(PlacedDate, 6, 5) not in (
+  Select distinct substr(PlacedDate, 6, 5)
+  From caches where found
+)
+<enddata>
+
+
+<Data> VarName=$SQL_Jasmer
+Update Caches
+Set ~UserField~ = '~Letter~' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Code not in (
+  Select Code
+  From Caches
+  Where substr(PlacedDate, 0, 8) not in (
+    Select Distinct substr(PlacedDate, 0, 8) as Mnd
+    From caches
+    Where Found
+    Group by Mnd Having count(Mnd) ~OPERATOR~ ~JASMER~
+  )
+)
+<enddata>
+
+
+<Data> VarName=$SQL_DT
+Update Caches
+Set ~UserField~ = '~Letter~' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Code Not in (
+  Select Code
+  From Caches
+  Where 100*difficulty+terrain not in (
+    Select Distinct (100*Difficulty+Terrain) as DT
+    From Caches
+    Where Found
+    Group By DT Having count(DT) ~OPERATOR~ ~DTROUND~
+  )
+)
+<enddata>
+
+
+<Data> VarName=$SQL_DNF
+Update Caches
+Set ~UserField~ = 'D' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Code in (
+  Select code
+  From caches
+  Where (
+    Select sum(NA)
+    From (
+      Select case 
+        when ltype = 'Needs Archived' then 1 
+        when ltype = 'Didn''t find it' then 1 
+        when ltype = 'Needs Maintenance' then 1 
+        else 0 
+      end as NA
+      From logs
+      Where lParent = code order by ldate desc, llogid desc limit 1
+    )
+  )
+  > 0
+)
+<enddata>
+
+
+<Data> VarName=$SQL_Corr
+Update Caches
+Set ~UserField~ = '*' || ~UserField~
+Where ~WHERE~
+And Not Found
+And Status ='A'
+And Code in (
+  Select c.Code
+  From Caches c, Corrected o
+  Where Not c.Found
+  And o.kCode = c.Code
+)
+<enddata>
+
+
+<Data> VarName=$SQL_Disabled
+Update Caches
+Set ~UserField~ = '!' || ~UserField~
+Where ~WHERE~
+And Not Found
+And TempDisabled
+<enddata>
