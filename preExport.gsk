@@ -109,13 +109,10 @@ If RegEx ("(?-i)K", $Flags)
 EndIf
 
 If RegEx ("(?-i)G", $Flags)
-  # Sett 'G' for missing degree for cache '360 degrees of Norway'
+  # Sett 'G' for missing degree for cache 'GC470AG - 360 degrees of Norway - OK#14'
   $query = $SQL_G
-  $query = Replace ("~LATITUDE~", "61.6364", $query, false)
-  $query = Replace ("~LONGITUDE~", "8.3127", $query, false)
   GoSub Name=DoSQL
 EndIf
-
 
 If RegEx ("(?-i)F", $Flags)
   # Sett 'F' for cacher som har mer enn $Favoritt poeng
@@ -290,8 +287,8 @@ And Country = 'Norway'
 And Code in (
   Select code
   From caches
-  Where cast(g_bearing2(~LATITUDE~, ~LONGITUDE~, latOriginal, lonOriginal) as int) not in (
-    Select distinct cast(g_bearing2(~LATITUDE~, ~LONGITUDE~, c2.latOriginal, c2.lonOriginal) as int)
+  Where cast(g_bearing2(61.6364, 8.3127, latOriginal, lonOriginal) as int) not in (
+    Select distinct cast(g_bearing2(61.6364, 8.3127, c2.latOriginal, c2.lonOriginal) as int)
     From caches c2
     Where c2.Found
     And c2.Country = 'Norway'
