@@ -2,7 +2,7 @@
 # MacDescription = Create geocache visits file from unpublished caches.
 # MacFileName = CreateVisitsFile.gsk
 # MacAuthor = bjoff
-# MacVersion= 1.01
+# MacVersion= 1.02
 # MacUrl = 
 #*******************************************
 
@@ -30,5 +30,10 @@ while not ($_sqleol)
   sqlnext
 endwhile
 
-$msg = "Eksporterte $count linjer i filen $outfile"
+if $count = 0
+  $msg = "Ingen upubliserte cacher funnet."
+else
+  $msg = "Eksporterte $count linjer i filen $outfile."
+endIf
+
 msgok msg=$msg
