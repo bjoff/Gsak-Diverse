@@ -25,7 +25,7 @@
 # G - Manglende grad for cache '360 degrees of Norway'
 # K - manglende kommune
 # L - Lonely cache (ikke funnet på 1 år, og ikke vært disablet i perioden)
-# t - manglende DT i henholdsvis multi/mystery/tradisjonell (se f.eks. GC6XVBX,GC6RRKZ,GC6M79B,GC6M77E,etc)
+# t - manglende DT i henholdsvis multi/mystery/letterbox/tradisjonell (se f.eks. GC6XVBX,GC6RRKZ,GC6M79B,GC6M77E,etc)
 #
 # Et cachenavn kan da f.eks. se ut som dette på GPS'en:
 # "[*RMpGK] Fjelltur" som betyr at det her er korrigerte koordinater, du får
@@ -265,14 +265,10 @@ Set ~UserField~ = 'K' || ~UserField~
 Where ~WHERE~
 And Not Found
 And Status ='A'
-And Code in (
-  Select c.code
-  From caches c
-  Where c.Country || c.State || c.County not in (
-    Select distinct c2.Country || c2.State || c2.County
-    From caches c2
-    Where c2.Found
-  )
+And Country || State || County not in (
+  Select distinct c2.Country || c2.State || c2.County
+  From caches c2
+  Where c2.Found
 )
 <enddata>
 
