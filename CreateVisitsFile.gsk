@@ -1,0 +1,20 @@
+$outFile = SysInfo("WindowsFolder:Desktop") + "\geocachevisits_" + DateToString($_Today) + "_" + replace(":", "", $_Time) + ".txt"
+
+$dummy = sqlite("open","$_AppData\gsak.db3")
+$_sql = "select pcode, pdate, ptype, ptext  from publishlogs where ppublished = 0"
+$status = sqlite("sql", $_sql, "sqlget=0")
+
+while not ($_sqleol)
+  $_txt1 = sqlget("pcode")
+  $_txt2 = sqlget("pdate")
+  $_txt3 = sqlget("ptype")
+  $_txt4 = quote(sqlget("ptext"))
+
+  $result = TextOut($outFile, "none", "comma")
+  if left($result,7) = "*Error*"
+    pause Msg=$result
+    cancel
+  endIf  
+  
+  sqlnext
+endwhile
