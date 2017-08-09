@@ -1,5 +1,5 @@
 #*******************************************
-# MacVersion = 1.3
+# MacVersion = 1.4
 # MacDescription = preExport
 # MacAuthor = bjoff
 # MacFileName = preExport.gsk
@@ -169,7 +169,7 @@ EndIf
 If RegEx ("(?-i)R", $Flags)
   # Sett 'R' for cacher som mangler i 81 DT matrise
   $query = $SQL_DT
-  $query = Replace ("~Letter~", "r", $query, false)
+  $query = Replace ("~Letter~", "R", $query, false)
   $query = Replace ("~OPERATOR~", "<", $query, false)
   $query = Replace ("~DTROUND~", "$DtRound", $query, false)
   GoSub Name=DoSQL
