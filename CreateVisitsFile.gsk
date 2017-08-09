@@ -7,9 +7,10 @@
 #*******************************************
 
 # Default is to place a file called "geocachevisits_(datetime)" on your desktop.
-$outFile = SysInfo("WindowsFolder:Desktop") + "\geocachevisits_" + DateToString($_Today) + "_" + replace(":", "", $_Time) + ".txt"
+$outFile = "geocachevisits_" + DateToString($_Today) + "_" + replace(":", "", $_Time) + ".txt"
 
 $dummy = sqlite("open","$_AppData\gsak.db3")
+$count = 0
 $_sql = "select pcode, pdate, ptype, ptext  from publishlogs where ppublished = 0"
 $status = sqlite("sql", $_sql, "sqlget=0")
 
@@ -19,11 +20,15 @@ while not ($_sqleol)
   $_txt3 = sqlget("ptype")
   $_txt4 = quote(sqlget("ptext"))
 
-  $result = TextOut($outFile, "none", "comma")
+  $result = TextOut(SysInfo("WindowsFolder:Desktop") + "\" + $outFile, "none", "comma")
   if left($result,7) = "*Error*"
     pause Msg=$result
     cancel
   endIf  
   
+  $count = $count + 1
   sqlnext
 endwhile
+
+$msg = "Eksporterte $count linjer i filen $outfile"
+msgok msg=$msg
