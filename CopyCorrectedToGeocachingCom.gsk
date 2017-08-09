@@ -1,0 +1,104 @@
+#*******************************************
+# MacDescription = Update Corrected Coordinates on Geocaching.Com
+# MacFileName = CopyCorrectedToGeocachingCom.gsk
+# MacAuthor = bjoff
+# MacVersion= 1.02
+# MacUrl = 
+#*******************************************
+
+#
+# Oppdaterer korrigerte koordinater på geocaching.com.
+#
+#
+# Krav for å benytte denne makroen:
+#  * Installer makro CorrectedDateToCustomField : http://gsak.net/board/index.php?showtopic=26381
+#  * Legg inn makro fra steget over i 'Corrected Coordinates' dialogen under 'Macro to run after OK'
+#  * Alle cacher som skal oppdateres på geocaching.com må ha en gyldig dato i feltet 'CorrDate'
+#  
+# Når dette er på plass vil makroen holde styr på hvilke cacher som er endret lokalt og som ikke er 
+# send til geocaching.com.
+# Dersom korrigerte koordinater slettes vil makroen fjerne koordinatene fra gc.com 
+# 
+
+VERCHECK Version=8.6.0.0 (Please update GSAK to version 8.6 or later to run this macro)
+
+# Check if we have the macro "CorrectedDateToCustomField" installed and setup.
+$_sql="PRAGMA table_info(Custom)"
+$CustomCol=Sqlite("sql",$_sql)
+If At("CorrDate",$CustomCol)=0
+    MsgOk msg=Avslutter. Du må først installere og kjøre makroen CorrectedDateToCustomField
+    Return
+EndIf
+
+
+# Some housekeeping, should only run first time we use the macro.
+$_sql="PRAGMA table_info(Custom)"
+$CustomCol=Sqlite("sql",$_sql)
+If At("CorrUpdate",$CustomCol)=0
+    $Status=CustomConfig("Add","CorrUpdate,Date,Local,,,,,")
+EndIf
+
+
+# Chose caches which should be updated
+MFilter where=CorrDate >= '01.01.2000' and CorrDate >= CorrUpdate
+If $_FilterCount = 0
+  MsgOk msg=Avslutter. Ingen cacher trenger oppdatering
+  Return
+EndIf
+
+
+$CurrNum = 1
+$TotalNum = $_FilterCount
+$Added   = 0
+$Removed = 0
+
+
+Goto Position=TOP
+While Not ($_EOL)
+
+  # If corrected, we update
+  If $d_HasCorrected
+    $XmlAPI=$APITemplate
+    $XmlAPI=Replace("~GCCODE~",    $d_Code,      $XmlAPI)
+    $XmlAPI=Replace("~LATITUDE~",  $d_Latitude,  $XmlAPI)
+    $XmlAPI=Replace("~LONGITUDE~", $d_Longitude, $XmlAPI)
+    $retVal = GcApi("SaveUserWaypoint",$XmlAPI)
+    If $_GcApiError
+     MsgOk msg="There was an error with the API request (SaveUserWaypoint)"
+    EndIf
+    $Added = $Added + 1
+  Else
+
+    # Not corrected anymore, delete from geocaching.com
+    $WayPoints = GcApi("GetUserWaypoints?cacheCode=$d_Code")  
+    $WpToDelete = val(sqlite("sql","select data FROM GCapi where key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:ID' "))
+    If $WpToDelete > 1
+      $ApiRes = GcApi("DeleteUserWaypoint?waypointId=$WpToDelete")
+      If $_GcApiError
+        MsgOk msg="There was an error with the API request (DeleteUserWaypoint)"
+      EndIf
+    EndIf
+    $Removed = $Removed + 1
+  EndIf
+  
+  $statusMessage = "$CurrNum / $TotalNum (Added: $Added / Removed: $Removed)"
+  ShowStatus msg=$statusMessage Width=350
+  
+  # Update CustomField CurrUpdate
+  $dummy = CustomPut("CorrUpdate",DateToSql($_Today))
+
+  $CurrNum = $CurrNum + 1
+  Goto Position=Next
+EndWhile
+
+<data> VarName=$APITemplate
+<SaveUserWaypointRequest xmlns="http://www.geocaching.com/Geocaching.Live/data">
+  <AccessToken>{ACCESSTOKEN}</AccessToken>
+  <CacheCode>~GCCODE~</CacheCode>
+  <Latitude>~LATITUDE~</Latitude>
+  <Longitude>~LONGITUDE~</Longitude>
+  <ID>0</ID>
+  <IsCorrectedCoordinate>true</IsCorrectedCoordinate>
+  <IsUserCompleted>true</IsUserCompleted>
+</SaveUserWaypointRequest>
+<enddata>
