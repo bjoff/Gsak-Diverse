@@ -1,3 +1,12 @@
+#*******************************************
+# MacDescription = Create geocache visits file from unpublished caches.
+# MacFileName = CreateVisitsFile.gsk
+# MacAuthor = bjoff
+# MacVersion= 1.0
+# MacUrl = 
+#*******************************************
+
+# Default is to place a file called "geocachevisits_(datetime)" on your desktop.
 $outFile = SysInfo("WindowsFolder:Desktop") + "\geocachevisits_" + DateToString($_Today) + "_" + replace(":", "", $_Time) + ".txt"
 
 $dummy = sqlite("open","$_AppData\gsak.db3")
