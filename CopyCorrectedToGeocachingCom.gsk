@@ -2,7 +2,7 @@
 # MacDescription = Update Corrected Coordinates on Geocaching.Com
 # MacFileName = CopyCorrectedToGeocachingCom.gsk
 # MacAuthor = bjoff
-# MacVersion= 1.02
+# MacVersion= 1.03
 # MacUrl = 
 #*******************************************
 
@@ -40,7 +40,7 @@ EndIf
 
 
 # Chose caches which should be updated
-MFilter where=CorrDate >= '01.01.2000' and CorrDate >= CorrUpdate
+MFilter where=(CorrDate > '01-01-2000' and CorrDate >= CorrUpdate) or (CorrDate = '' and CorrUpdate = '' and HasCorrected)
 If $_FilterCount = 0
   MsgOk msg=Avslutter. Ingen cacher trenger oppdatering
   Return
