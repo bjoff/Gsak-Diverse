@@ -9,8 +9,10 @@ En liten macro som kan kjøres før publisering av logger i Gsak, og som lager e
 
 En makro som setter (og fjerner) korrigerte koordinater på geocaching.com, noe som gjør at kart på websiden, samt i mobil-appene viser korrekte cache-plasseringer. Merk at denne makroen krever at makroen [CorrectedDateToCustomField](http://gsak.net/board/index.php?showtopic=26381&st=0&#entry199014) på forhånd er installert.
 
+[Installasjonsveiledning](https://github.com/bjoff/Gsak-Diverse/CopyCorrectedToGeocachingCom)
+
 ## [preExport v1.4](https://github.com/bjoff/Gsak-Diverse/releases/download/v1.4/preExport.gskz)
 
-Setter endel 'flagg' som kan vises sammen med cachenavn på GPS'en. Se preExport.gsk for tilgjengelige flagg. 
+Setter endel 'flagg' som kan vises sammen med cachenavn på GPS'en. Se preExport.gsk for tilgjengelige flagg.
 
 *NB*: Denne makroen krever noe avansert oppsett for å kunne benyttes (se info i selve .gsk-filen)
