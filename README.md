@@ -16,4 +16,5 @@ En makro som setter (og fjerner) korrigerte koordinater på geocaching.com, noe 
 Setter endel 'flagg' som kan vises sammen med cachenavn på GPS'en. Se preExport.gsk for tilgjengelige flagg.
 
 *NB*: Denne makroen krever noe avansert oppsett for å kunne benyttes (se info i selve .gsk-filen)
+
 *NB2*: Denne makroen krever at du benytter _en_ database for både funnede og gufunnede cacher.
