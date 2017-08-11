@@ -2,23 +2,27 @@
 # MacDescription = Create geocache visits file from unpublished caches.
 # MacFileName = CreateVisitsFile.gsk
 # MacAuthor = bjoff
-# MacVersion= 1.02
+# MacVersion= 1.03
 # MacUrl = 
 #*******************************************
+#
+# v1.03 - 20170811 Now also copies comments
+#
+#
 
 # Default is to place a file called "geocachevisits_(datetime)" on your desktop.
 $outFile = "geocachevisits_" + DateToString($_Today) + "_" + replace(":", "", $_Time) + ".txt"
 
 $dummy = sqlite("open","$_AppData\gsak.db3")
 $count = 0
-$_sql = "select pcode, pdate, ptype, ptext  from publishlogs where ppublished = 0"
+$_sql = "select pCode, pDate, pType, pNotes  from publishlogs where ppublished = 0"
 $status = sqlite("sql", $_sql, "sqlget=0")
 
 while not ($_sqleol)
-  $_txt1 = sqlget("pcode")
-  $_txt2 = sqlget("pdate")
-  $_txt3 = sqlget("ptype")
-  $_txt4 = quote(sqlget("ptext"))
+  $_txt1 = sqlget("pCode")
+  $_txt2 = sqlget("pDate")
+  $_txt3 = sqlget("pType")
+  $_txt4 = quote(sqlget("pNotes"))
 
   $result = TextOut(SysInfo("WindowsFolder:Desktop") + "\" + $outFile, "none", "comma")
   if left($result,7) = "*Error*"
