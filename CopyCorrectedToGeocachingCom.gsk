@@ -13,7 +13,9 @@
 # v1.04 - 2017-08-11 Update a corrected coordinate is not allowed, so now we
 #                    delete it first if it already exists corrected coordinates 
 #                    on geocaching.com
-#
+# v1.05 - 2018-05-07 Added check that corrected coords exists after sending, as there
+#                    seems to be some quirks with this API.
+#                    Also added pause when API returns 'exceeded'
 
 
 # Oppdaterer korrigerte koordinater på geocaching.com.
@@ -61,48 +63,23 @@ $TotalNum = $_FilterCount
 $Added   = 0
 $Removed = 0
 
-
 Goto Position=TOP
 While Not ($_EOL)
 
   # If corrected, we try to update
   If $d_HasCorrected
     Gosub name=SendCorrected
-    $APIres = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
-
-    # Already exists, we first need to delete on gc.com, then try again
-    If $APIres = 155
-
-      Gosub name=DeleteCorrected
-      $APIres = val(sqlite("sql","select data FROM GCapi where key = '/StatusResponse/StatusCode'"))
-      If $APIres <> 0
-        MsgOk msg="There was an error with the API request (SaveUserWaypoint) Status is $APIres"
-      EndIf
-
-      Gosub name=SendCorrected
-      $APIres = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
-      If $APIres <> 0
-        MsgOk msg="There was an error with the API request (SaveUserWaypoint) Status is $APIres"
-      EndIf
-
-    EndIf
     $Added = $Added + 1
-
 
   # Not corrected anymore, delete from geocaching.com
   Else
     Gosub name=DeleteCorrected
-    $APIres = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
-    If $APIres <> 0
-      MsgOk msg="There was an error with the API request (SaveUserWaypoint) Status is $APIres"
-    EndIf
-
     $Removed = $Removed + 1
   EndIf
-  
+
   $statusMessage = "$CurrNum / $TotalNum (Added: $Added / Removed: $Removed)"
   ShowStatus msg=$statusMessage Width=350
-  
+
   # Update CustomField CurrUpdate
   $dummy = CustomPut("CorrUpdate",DateToSql($_Today))
 
@@ -113,31 +90,87 @@ EndWhile
 MsgOk msg="Finished: $Added added - $Removed removed"
 
 BeginSub name=SendCorrected
-  $XmlAPI=$APITemplate
-  $XmlAPI=Replace("~GCCODE~",    $d_Code,      $XmlAPI)
-  $XmlAPI=Replace("~LATITUDE~",  $d_Latitude,  $XmlAPI)
-  $XmlAPI=Replace("~LONGITUDE~", $d_Longitude, $XmlAPI)
-  $retVal = GcApi("SaveUserWaypoint",$XmlAPI)
-  If $_GcApiError
-    MsgOk msg="There was an error with the API request (SaveUserWaypoint)"
-  EndIf
-#
-#MsgOk msg="Finished with SaveUserWaypoint"
-#
+$DoLoop = true
+$LoopCounter = 1
+  While $DoLoop
+    $XmlAPI=$APITemplate
+    $XmlAPI=Replace("~GCCODE~",    $d_Code,      $XmlAPI)
+    $XmlAPI=Replace("~LATITUDE~",  $d_Latitude,  $XmlAPI)
+    $XmlAPI=Replace("~LONGITUDE~", $d_Longitude, $XmlAPI)
+    $retVal = GcApi("SaveUserWaypoint",$XmlAPI)
+    If $_GcApiError
+      MsgOk msg="There was an error with the API request (SaveUserWaypoint)"
+    EndIf
+
+    $APIres = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
+	If $APIres = 0
+	  # The API is unreliable, so we need to actually check if we have a corrected coord! :/
+	  $retVal = GcApi("GetUserWaypoints?&cacheCode=$d_Code")
+	  If $_GcApiError
+        MsgOk msg="There was an error with the API request (GetUserWaypoints)"
+      EndIf
+	  $Corrected = val(sqlite("sql","select count(key) FROM GCapi where Key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:IsCorrectedCoordinate' and Data = 'true'"))
+	  If $Corrected > 0
+        $DoLoop = false
+	  EndIf
+    EndIf
+
+    # The number of calls allowed for this Method has been exceeded
+    If $APIres = 140
+      Gosub name=DelayTimer
+	EndIf
+	# Already exists, we first need to delete on gc.com, then try again
+	If $APIres = 155
+      Gosub name=DeleteCorrected
+    EndIf
+
+	If $LoopCounter > 5
+	  # Bail out
+	  MsgOk msg="There was an error with the API request (SaveUserWaypoint) Status is $APIres"
+	  $DoLoop = false
+	EndIf
+  $LoopCounter = $LoopCounter + 1
+  EndWhile
 EndSub
 
 BeginSub name=DeleteCorrected
-  $WayPoints = GcApi("GetUserWaypoints?cacheCode=$d_Code")
-  $WpToDelete = val(sqlite("sql","select data FROM GCapi where key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:ID' "))
-  If $WpToDelete > 1
-    $retVal = GcApi("DeleteUserWaypoint?waypointId=$WpToDelete")
-    If $_GcApiError
-      MsgOk msg="There was an error with the API request (DeleteUserWaypoint)"
+  $DoDelLoop = true
+$LoopDelCounter = 1
+  While $DoDelLoop
+    $WayPoints = GcApi("GetUserWaypoints?cacheCode=$d_Code")
+    $WpToDelete = val(sqlite("sql","select data FROM GCapi where key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:ID' "))
+    If $WpToDelete > 1
+      $retVal = GcApi("DeleteUserWaypoint?waypointId=$WpToDelete")
+      If $_GcApiError
+        MsgOk msg="There was an error with the API request (DeleteUserWaypoint)"
+      EndIf
     EndIf
-  EndIf
-#
-#MsgOk msg="Finished with GetUserWaypoints"
-#
+
+    # The number of calls allowed for this Method has been exceeded
+    $APIresDel = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
+    If $APIresDel = 140
+      Gosub name=DelayTimer
+	EndIf
+    If $APIresDel = 0
+      $DoDelLoop = false
+	EndIf
+
+	If $LoopDelCounter > 5
+	  # Bail out
+	  $DoDelLoop = false
+	EndIf
+  $LoopDelCounter = $LoopDelCounter + 1
+  EndWhile
+EndSub
+
+BeginSub name=DelayTimer
+	$DelaySeconds = 20
+	While $DelaySeconds >= 0
+		Delay MS=1000
+		ShowStatus Msg="Please wait $DelaySeconds seconds before we continue" Title=API Delay : $DelaySeconds
+		$DelaySeconds = $DelaySeconds - 1
+	EndWhile
+	ShowStatus Display=Off
 EndSub
 
 <data> VarName=$APITemplate
