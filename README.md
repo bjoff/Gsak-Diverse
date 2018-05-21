@@ -1,5 +1,5 @@
 # Gsak-Diverse
-Diverse macro og snutter for gsak
+Diverse macro og snutter for Gsak
 
 ## [CreateVisitsFile v1.03](https://github.com/bjoff/Gsak-Diverse/releases/download/v1.03/CreateVisitsFile.gskz)
 
