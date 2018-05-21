@@ -25,7 +25,7 @@
 # G - Manglende grad for cache '360 degrees of Norway'
 # K - manglende kommune
 # L - Lonely cache (ikke funnet på 1 år, og ikke vært disablet i perioden)
-# t - manglende DT i henholdsvis multi/mystery/letterbox/tradisjonell (se f.eks. GC6XVBX,GC6RRKZ,GC6M79B,GC6M77E,etc)
+# t - manglende DT for cachetypen (se f.eks. GC6XVBX,GC6RRKZ,GC6M79B,GC6M77E,etc)
 #
 # Et cachenavn kan da f.eks. se ut som dette på GPS'en:
 # "[*RMpGK] Fjelltur" som betyr at det her er korrigerte koordinater, du får
@@ -43,7 +43,6 @@
 # Dette er selve av/på knappen for de forskjellige bokstavene.
 
 $Flags = "!*DRrMmdApFGKLt"
-
 
 # Her setter vi hvilket felt som skal benyttes for flaggene som settes.
 # Mulige verdier er 'User1', 'User2', 'User3', 'User4'.
@@ -74,26 +73,15 @@ $_sql = "Update Caches set $UserField = ''"
 $status = Sqlite("sql",$_sql)
 
 If RegEx ("(?-i)t", $Flags)
-  # Sett 't' for cacher som mangler i 81 DT matrise for Multi
-  $query = $SQL_T
-  $query = Replace ("~TYPE~", "M", $query, false)
-  GoSub Name=DoSQL
+  $cacheTypes = "BCEIMRTUVWZ"
+  While Len($cacheTypes) > 0
+    $type = Left($cacheTypes, 1)
+    $cacheTypes = Right($cacheTypes, Len($cacheTypes) -1)
 
-  # Sett 't' for cacher som mangler i 81 DT matrise for Mystery
-  $query = $SQL_T
-  $query = Replace ("~TYPE~", "U", $query, false)
-  GoSub Name=DoSQL
-
-  # Sett 't' for cacher som mangler i 81 DT matrise for Traditional
-  $_sql = $sql_t
-  $query = $SQL_T
-  $query = Replace ("~TYPE~", "T", $query, false)
-  GoSub Name=DoSQL
-
-  # Sett 't' for cacher som mangler i 81 DT matrise for Letterbox
-  $query = $SQL_T
-  $query = Replace ("~TYPE~", "B", $query, false)
-  GoSub Name=DoSQL
+    $query = $SQL_T
+    $query = Replace ("~TYPE~", $type, $query, false)
+    GoSub Name=DoSQL
+  EndWhile
 EndIf
 
 If RegEx ("(?-i)L", $Flags)
