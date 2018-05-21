@@ -201,8 +201,9 @@ $status = Sqlite("sql",$_sql)
 MACRO File="GarminExport.gsk" VarScope=Local
 
 BeginSub Name=DoSQL
+  $filterSQL = "Code In (SELECT Code FROM CachesAll WHERE $_WHERE)"
   $_sql = Replace ("~UserField~", $UserField, $query, false)
-  $_sql = Replace ("~WHERE~", $_WHERE, $_sql, false)
+  $_sql = Replace ("~WHERE~", $filterSQL, $_sql, false)
   $status = Sqlite("sql",$_sql)
 EndSub
 
