@@ -1,0 +1,45 @@
+# MacDescription = GetCachesWithComments
+# MacFileName = GetCachesWithComments.gsk
+# MacAuthor = bjoff
+# MacVersion= 1.0
+# MacUrl = 
+#*******************************************
+
+VERCHECK Version=8.1.0.0 (Please update GSAK to version 8.1 or later to run this macro)
+
+$maxPerPage = 30
+
+$start = 0
+While $start > -1
+  $ApiCall = "GetUsersCacheNotes?startIndex=$start&maxPerPage=$maxPerPage"
+  $retVal = GcApi($ApiCall)
+
+  # Create a list of gccodes that was returned and is not in the current database.
+  $_sql = "select data FROM GCapi where key = '/GetUsersCacheNotesResponse/CacheNotes/a:CacheNote/a:CacheCode' and data NOT IN (SELECT Code FROM Caches)"
+  $AddCaches = sqlite ("sql", $_sql, "")
+  $NumAddCaches = $_SqlRows
+
+  # If no more caches to get, set negative value to get out of outer loop
+  If $NumAddCaches = 0
+    $start = -100
+  EndIf
+
+  transaction Action=BEGIN   
+  $loopCount = 1
+  While $loopCount <= $NumAddCaches 
+    $CacheToAdd = Extract($AddCaches, $_crlf, $loopCount)
+	
+	#Create a new cache and set code and name to the gccode.
+    AddNew
+    $d_Code = $CacheToAdd
+	$d_Name = $CacheToAdd
+
+    $loopCount = $loopCount + 1
+  Endwhile
+  transaction Action=END
+
+  $start = $start + $maxPerPage 
+EndWhile
+
+# Finally, get full details on the downloaded caches
+# gcrefresh scope=filter format=full Showsummary=no
