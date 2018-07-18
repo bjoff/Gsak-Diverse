@@ -2,7 +2,7 @@
 # MacDescription = Update Corrected Coordinates on Geocaching.Com
 # MacFileName = CopyCorrectedToGeocachingCom.gsk
 # MacAuthor = bjoff
-# MacVersion= 1.04
+# MacVersion= 1.05
 # MacUrl = 
 #*******************************************
 
@@ -90,8 +90,8 @@ EndWhile
 MsgOk msg="Finished: $Added added - $Removed removed"
 
 BeginSub name=SendCorrected
-$DoLoop = true
-$LoopCounter = 1
+  $DoLoop = true
+  $LoopCounter = 1
   While $DoLoop
     $XmlAPI=$APITemplate
     $XmlAPI=Replace("~GCCODE~",    $d_Code,      $XmlAPI)
@@ -103,39 +103,38 @@ $LoopCounter = 1
     EndIf
 
     $APIres = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
-	If $APIres = 0
-	  # The API is unreliable, so we need to actually check if we have a corrected coord! :/
-	  $retVal = GcApi("GetUserWaypoints?&cacheCode=$d_Code")
-	  If $_GcApiError
+    If $APIres = 0
+      # The API is unreliable, so we need to actually check if we have a corrected coord! :/
+      $retVal = GcApi("GetUserWaypoints?&cacheCode=$d_Code")
+      If $_GcApiError
         MsgOk msg="There was an error with the API request (GetUserWaypoints)"
       EndIf
-	  $Corrected = val(sqlite("sql","select count(key) FROM GCapi where Key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:IsCorrectedCoordinate' and Data = 'true'"))
-	  If $Corrected > 0
+      $Corrected = val(sqlite("sql","select count(key) FROM GCapi where Key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:IsCorrectedCoordinate' and Data = 'true'"))
+      If $Corrected > 0
         $DoLoop = false
-	  EndIf
+      EndIf
     EndIf
 
     # The number of calls allowed for this Method has been exceeded
     If $APIres = 140
       Gosub name=DelayTimer
-	EndIf
-	# Already exists, we first need to delete on gc.com, then try again
-	If $APIres = 155
+    EndIf
+    # Already exists, we first need to delete on gc.com, then try again
+    If $APIres = 155
       Gosub name=DeleteCorrected
     EndIf
-
-	If $LoopCounter > 5
-	  # Bail out
-	  MsgOk msg="There was an error with the API request (SaveUserWaypoint) Status is $APIres"
-	  $DoLoop = false
-	EndIf
-  $LoopCounter = $LoopCounter + 1
+    If $LoopCounter > 5
+      # Bail out
+      MsgOk msg="There was an error with the API request (SaveUserWaypoint) Status is $APIres"
+      $DoLoop = false
+    EndIf
+    $LoopCounter = $LoopCounter + 1
   EndWhile
 EndSub
 
 BeginSub name=DeleteCorrected
   $DoDelLoop = true
-$LoopDelCounter = 1
+  $LoopDelCounter = 1
   While $DoDelLoop
     $WayPoints = GcApi("GetUserWaypoints?cacheCode=$d_Code")
     $WpToDelete = val(sqlite("sql","select data FROM GCapi where key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:ID' "))
@@ -150,27 +149,27 @@ $LoopDelCounter = 1
     $APIresDel = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
     If $APIresDel = 140
       Gosub name=DelayTimer
-	EndIf
+    EndIf
     If $APIresDel = 0
       $DoDelLoop = false
-	EndIf
+    EndIf
 
-	If $LoopDelCounter > 5
-	  # Bail out
-	  $DoDelLoop = false
-	EndIf
-  $LoopDelCounter = $LoopDelCounter + 1
+    If $LoopDelCounter > 5
+      # Bail out
+      $DoDelLoop = false
+    EndIf
+    $LoopDelCounter = $LoopDelCounter + 1
   EndWhile
 EndSub
 
 BeginSub name=DelayTimer
-	$DelaySeconds = 20
-	While $DelaySeconds >= 0
-		Delay MS=1000
-		ShowStatus Msg="Please wait $DelaySeconds seconds before we continue" Title=API Delay : $DelaySeconds
-		$DelaySeconds = $DelaySeconds - 1
-	EndWhile
-	ShowStatus Display=Off
+  $DelaySeconds = 20
+  While $DelaySeconds >= 0
+    Delay MS=1000
+    ShowStatus Msg="Please wait $DelaySeconds seconds before we continue" Title=API Delay : $DelaySeconds
+    $DelaySeconds = $DelaySeconds - 1
+  EndWhile
+  ShowStatus Display=Off
 EndSub
 
 <data> VarName=$APITemplate
