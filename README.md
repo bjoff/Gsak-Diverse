@@ -17,4 +17,4 @@ Setter endel 'flagg' som kan vises sammen med cachenavn på GPS'en. Se preExport
 
 *NB*: Denne makroen krever noe avansert oppsett for å kunne benyttes (se info i selve .gsk-filen)
 
-*NB2*: Denne makroen krever at du benytter _en_ database for både funnede og gufunnede cacher.
+*NB2*: Denne makroen krever at du benytter _en_ database for både funnede og ufunnede cacher.
