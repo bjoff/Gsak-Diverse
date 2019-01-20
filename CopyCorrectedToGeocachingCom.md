@@ -14,4 +14,4 @@
   * CorrUpdate - Dato for når koordinater er lastet opp til geocaching.com.  
   Settes av CopyCorrectedToGeocachingCom når koordinater er lastet opp til geocaching.com.
 * Ved kjøring oppdateres cacher hvor _CorrDate_ er nyere eller lik _CorrUpdate_. Dette betyr at man vil se at makroen oppdaterer de samme cachene flere ganger dersom man kjører denne makroen samme dag som cachens koordinater blir oppdatert.
-* Dersom man sletter korrigerte koordinater vil dette fanges av makroen, og ved neste kjøring slettes da de korrigerte koordinatene fra geocacheing.com
+* Dersom man sletter korrigerte koordinater vil dette fanges av makroen, og ved neste kjøring slettes da de korrigerte koordinatene fra geocaching.com

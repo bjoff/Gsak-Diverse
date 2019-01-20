@@ -2,7 +2,7 @@
 # MacDescription = Update Corrected Coordinates on Geocaching.Com
 # MacFileName = CopyCorrectedToGeocachingCom.gsk
 # MacAuthor = bjoff
-# MacVersion= 1.05
+# MacVersion= 1.06
 # MacUrl = 
 #*******************************************
 
@@ -16,7 +16,8 @@
 # v1.05 - 2018-05-07 Added check that corrected coords exists after sending, as there
 #                    seems to be some quirks with this API.
 #                    Also added pause when API returns 'exceeded'
-
+# v1.06 - 2019-01-20 Removed extra checks, seems they are not
+#                    needed anymore.
 
 # Oppdaterer korrigerte koordinater på geocaching.com.
 #
@@ -104,15 +105,7 @@ BeginSub name=SendCorrected
 
     $APIres = val(sqlite("sql","select data FROM GCapi where key = '/SaveUserWaypointResponse/Status/StatusCode'"))
     If $APIres = 0
-      # The API is unreliable, so we need to actually check if we have a corrected coord! :/
-      $retVal = GcApi("GetUserWaypoints?&cacheCode=$d_Code")
-      If $_GcApiError
-        MsgOk msg="There was an error with the API request (GetUserWaypoints)"
-      EndIf
-      $Corrected = val(sqlite("sql","select count(key) FROM GCapi where Key = '/GetUserWaypointsResponse/UserWaypoints/a:UserWaypoint/a:IsCorrectedCoordinate' and Data = 'true'"))
-      If $Corrected > 0
-        $DoLoop = false
-      EndIf
+      $DoLoop = false
     EndIf
 
     # The number of calls allowed for this Method has been exceeded
@@ -123,6 +116,7 @@ BeginSub name=SendCorrected
     If $APIres = 155
       Gosub name=DeleteCorrected
     EndIf
+
     If $LoopCounter > 5
       # Bail out
       MsgOk msg="There was an error with the API request (SaveUserWaypoint) Status is $APIres"
