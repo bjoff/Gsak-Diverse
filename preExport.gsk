@@ -1,5 +1,5 @@
 #*******************************************
-# MacVersion = 1.5
+# MacVersion = 1.6
 # MacDescription = preExport
 # MacAuthor = bjoff
 # MacFileName = preExport.gsk
@@ -21,7 +21,7 @@
 # d - Mangler i 'utlagt dato' tabellen
 # A - Denne cachen har et attributt du mangler
 # p - Denne cachen har parkeringskoordinater / underveipunkt
-# F - Denne cachen som har mer enn X poeng
+# F - Denne cachen som har mer enn X favorittpoeng
 # G - Manglende grad for cache '360 degrees of Norway'
 # K - manglende kommune
 # L - Lonely cache (ikke funnet på 1 år, og ikke vært disablet i perioden)
@@ -55,7 +55,7 @@ $UserField = "User4"
 # Standardverdi er 1.
 $DtRound = 1
 
-# Standardverdi er 1. (For flagg 'd')
+# Standardverdi er 1. (For flagg 'M' og 'm')
 $Jasmer = 1
 
 # Favorittpoeng som skal markeres med 'F'
@@ -189,9 +189,7 @@ $status = Sqlite("sql",$_sql)
 MACRO File="GarminExport.gsk" VarScope=Local
 
 BeginSub Name=DoSQL
-  $filterSQL = "Code In (SELECT Code FROM CachesAll WHERE $_WHERE)"
   $_sql = Replace ("~UserField~", $UserField, $query, false)
-  $_sql = Replace ("~WHERE~", $filterSQL, $_sql, false)
   $status = Sqlite("sql",$_sql)
 EndSub
 
@@ -206,8 +204,7 @@ EndSub
 <Data> VarName=$SQL_T
 Update Caches
 Set ~UserField~ = 't' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And CacheType = '~TYPE~'
 And Code in (
@@ -227,8 +224,7 @@ And Code in (
 <Data> VarName=$SQL_L
 Update Caches
 Set ~UserField~ = 'L' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And (julianday('now') - julianday(LastFoundDate) > 365 or LastFoundDate = '' and (julianday('now') - julianday(PlacedDate)) > 365)
 And code Not in (
@@ -251,8 +247,7 @@ And code not in (
 <Data> VarName=$SQL_K
 Update Caches
 Set ~UserField~ = 'K' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Country || State || County not in (
   Select distinct c2.Country || c2.State || c2.County
@@ -265,8 +260,7 @@ And Country || State || County not in (
 <Data> VarName=$SQL_G
 Update Caches
 Set ~UserField~ = 'G' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Country = 'Norway'
 And Code in (
@@ -285,8 +279,7 @@ And Code in (
 <Data> VarName=$SQL_F
 Update Caches
 Set ~UserField~ = 'F' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And FavPoints >= ~Favoritt~
 <enddata>
@@ -295,8 +288,7 @@ And FavPoints >= ~Favoritt~
 <Data> VarName=$SQL_p
 Update Caches
 Set ~UserField~ = 'p' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Code in (
   Select c.Code
@@ -311,8 +303,7 @@ And Code in (
 <Data> VarName=$SQL_A
 Update Caches
 Set ~UserField~ = 'A' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Code in (
   Select distinct c.Code
@@ -331,8 +322,7 @@ And Code in (
 <Data> VarName=$SQL_d
 Update Caches
 Set ~UserField~ = 'd' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And substr(PlacedDate, 6, 5) not in (
   Select distinct substr(PlacedDate, 6, 5)
@@ -344,8 +334,7 @@ And substr(PlacedDate, 6, 5) not in (
 <Data> VarName=$SQL_Jasmer
 Update Caches
 Set ~UserField~ = '~Letter~' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Code not in (
   Select Code
@@ -363,8 +352,7 @@ And Code not in (
 <Data> VarName=$SQL_DT
 Update Caches
 Set ~UserField~ = '~Letter~' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Code Not in (
   Select Code
@@ -382,8 +370,7 @@ And Code Not in (
 <Data> VarName=$SQL_DNF
 Update Caches
 Set ~UserField~ = 'D' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Code in (
   Select code
@@ -409,8 +396,7 @@ And Code in (
 <Data> VarName=$SQL_Corr
 Update Caches
 Set ~UserField~ = '*' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And Status ='A'
 And Code in (
   Select c.Code
@@ -424,7 +410,6 @@ And Code in (
 <Data> VarName=$SQL_Disabled
 Update Caches
 Set ~UserField~ = '!' || ~UserField~
-Where ~WHERE~
-And Not Found
+Where Not Found
 And TempDisabled
 <enddata>
